@@ -1,0 +1,2025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediHist - Patient Medical History Portal</title>
+    <!-- Supabase JS Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            /* Pastel Bright Palette (Light Mode) */
+            --bg-main: #fdfbf7;
+            --bg-card: #ffffff;
+            --bg-subtle: #f4f0ea;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+
+            /* Bright Pastels */
+            --pastel-sky-bg: #e0f2fe;
+            --pastel-sky-text: #0369a1;
+            --pastel-mint-bg: #e6f4ea;
+            --pastel-mint-text: #047857;
+            --pastel-lavender-bg: #f3e8ff;
+            --pastel-lavender-text: #6b21a8;
+            --pastel-peach-bg: #ffedd5;
+            --pastel-peach-text: #c2410c;
+            --pastel-rose-bg: #ffe4e6;
+            --pastel-rose-text: #be123c;
+            --pastel-yellow-bg: #fef9c3;
+            --pastel-yellow-text: #a16207;
+
+            /* Accent Colors */
+            --primary: #0284c7;
+            --primary-hover: #0369a1;
+            --teal: #0d9488;
+            --emerald: #10b981;
+            --rose: #f43f5e;
+
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+            --radius-lg: 16px;
+            --radius-md: 10px;
+        }
+
+        /* Dark Mode Overrides */
+        body.dark-mode {
+            --bg-main: #0b1329;
+            --bg-card: #162032;
+            --bg-subtle: #1e2d42;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #26334d;
+
+            --pastel-sky-bg: #033654;
+            --pastel-sky-text: #7dd3fc;
+            --pastel-mint-bg: #064e3b;
+            --pastel-mint-text: #6ee7b7;
+            --pastel-lavender-bg: #3b0764;
+            --pastel-lavender-text: #d8b4fe;
+            --pastel-peach-bg: #431407;
+            --pastel-peach-text: #fdba74;
+            --pastel-rose-bg: #4c0519;
+            --pastel-rose-text: #fda4af;
+            --pastel-yellow-bg: #422006;
+            --pastel-yellow-text: #fde047;
+
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font-family); background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; transition: background-color 0.3s, color 0.3s; }
+
+        /* Header */
+        header { background: var(--bg-card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 40; box-shadow: var(--shadow-sm); }
+        .header-container { max-width: 1280px; margin: 0 auto; padding: 0 20px; height: 68px; display: flex; align-items: center; justify-content: space-between; }
+        .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-main); }
+        .logo-icon { width: 42px; height: 42px; background: linear-gradient(135deg, #38bdf8, #2dd4bf); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(56, 189, 248, 0.3); }
+        .logo-text { font-size: 20px; font-weight: 800; color: var(--text-main); letter-spacing: -0.5px; }
+        .logo-sub { font-size: 11px; color: var(--text-muted); display: block; font-weight: 600; }
+
+        /* Theme Switcher Button */
+        .theme-toggle-btn { background: var(--bg-subtle); border: 1px solid var(--border); color: var(--text-main); padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+        .theme-toggle-btn:hover { border-color: var(--primary); }
+
+        /* Search */
+        .search-box { position: relative; width: 320px; }
+        .search-input { width: 100%; padding: 9px 12px 9px 36px; background-color: var(--bg-subtle); border: 1px solid var(--border); border-radius: 10px; font-size: 13px; color: var(--text-main); outline: none; transition: all 0.2s; }
+        .search-input:focus { background: var(--bg-card); border-color: var(--primary); }
+        .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 16px; height: 16px; }
+
+        /* Search Dropdown Results */
+        .search-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            max-height: 380px;
+            overflow-y: auto;
+            z-index: 100;
+            padding: 8px;
+        }
+        .search-result-item {
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+            margin-bottom: 4px;
+            border-bottom: 1px solid var(--border);
+        }
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover { background: var(--bg-subtle); }
+        .search-badge { display: inline-block; font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: var(--pastel-sky-bg); color: var(--pastel-sky-text); margin-bottom: 3px; }
+        .search-result-title { font-size: 13px; font-weight: 700; color: var(--text-main); }
+        .search-result-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+        /* Buttons */
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; transition: all 0.15s ease-in-out; text-decoration: none; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+        .btn-primary { background: #0284c7; color: white; }
+        .btn-primary:hover { background: #0369a1; }
+        .btn-teal { background: #0d9488; color: white; }
+        .btn-emerald { background: #10b981; color: white; }
+        .btn-purple { background: #9333ea; color: white; }
+        .btn-outline { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); }
+        .btn-outline:hover { background: var(--bg-subtle); }
+        .btn-danger { background: var(--pastel-rose-bg); color: var(--pastel-rose-text); border: 1px solid rgba(244,63,94,0.3); }
+        .btn-danger:hover { background: var(--rose); color: white; }
+
+        /* Nav Tabs Ribbon - Only shown when patient is selected! */
+        nav { background: var(--bg-card); border-bottom: 1px solid var(--border); transition: all 0.3s; }
+        .nav-container { max-width: 1280px; margin: 0 auto; padding: 0 16px; display: flex; gap: 4px; overflow-x: auto; }
+        .nav-tab { display: flex; align-items: center; gap: 6px; padding: 12px 16px; font-size: 13px; font-weight: 700; color: var(--text-muted); text-decoration: none; border-bottom: 3px solid transparent; white-space: nowrap; cursor: pointer; }
+        .nav-tab:hover { color: var(--text-main); }
+        .nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--pastel-sky-bg); border-radius: 8px 8px 0 0; }
+
+        /* Container */
+        main { max-width: 1280px; width: 100%; margin: 0 auto; padding: 24px 16px; flex: 1; }
+
+        /* Cards & Grid */
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow-sm); margin-bottom: 20px; transition: background-color 0.3s, border-color 0.3s; }
+        .grid-2 { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .grid-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (min-width: 768px) {
+            .grid-2 { grid-template-columns: 2fr 1fr; }
+            .grid-3 { grid-template-columns: repeat(3, 1fr); }
+            .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        /* Pastel Badges */
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; }
+        .badge-sky { background: var(--pastel-sky-bg); color: var(--pastel-sky-text); }
+        .badge-mint { background: var(--pastel-mint-bg); color: var(--pastel-mint-text); }
+        .badge-lavender { background: var(--pastel-lavender-bg); color: var(--pastel-lavender-text); }
+        .badge-peach { background: var(--pastel-peach-bg); color: var(--pastel-peach-text); }
+        .badge-rose { background: var(--pastel-rose-bg); color: var(--pastel-rose-text); }
+        .badge-yellow { background: var(--pastel-yellow-bg); color: var(--pastel-yellow-text); }
+
+        /* Patient Selector Cards */
+        .patient-select-card { background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-lg); padding: 20px; transition: all 0.2s; position: relative; cursor: pointer; }
+        .patient-select-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .patient-select-card.active-card { border-color: #38bdf8; background: var(--pastel-sky-bg); }
+
+        /* Dedicated Full Intake Card Banner */
+        .intake-hero-card { background: linear-gradient(135deg, var(--pastel-mint-bg), var(--pastel-sky-bg)); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+        /* Active Patient Banner Bar */
+        .active-patient-bar { background: var(--pastel-sky-bg); border: 1px solid var(--border); padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Alerts Row */
+        .alert-box { padding: 14px 18px; border-radius: 12px; font-size: 13px; display: flex; gap: 12px; align-items: center; }
+        .alert-peach { background: var(--pastel-peach-bg); color: var(--pastel-peach-text); border: 1px solid rgba(194, 65, 12, 0.2); }
+        .alert-rose { background: var(--pastel-rose-bg); color: var(--pastel-rose-text); border: 1px solid rgba(190, 18, 60, 0.2); }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+        th { background: var(--bg-subtle); padding: 12px; font-weight: 800; color: var(--text-main); border-bottom: 1px solid var(--border); text-transform: uppercase; font-size: 11px; }
+        td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text-main); }
+        tr:hover { background-color: var(--bg-subtle); }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(3px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+        .modal-overlay.active { display: flex !important; opacity: 1; pointer-events: auto; }
+        .modal { background: var(--bg-card); color: var(--text-main); border-radius: 20px; width: 100%; max-width: 540px; padding: 26px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid var(--border); transform: translateY(10px); transition: transform 0.2s; }
+        .modal-overlay.active .modal { transform: translateY(0); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 18px; }
+        .modal-title { font-size: 17px; font-weight: 800; }
+        .close-btn { background: none; border: none; font-size: 22px; color: var(--text-muted); cursor: pointer; }
+
+        /* Forms */
+        .form-group { margin-bottom: 14px; }
+        .form-label { display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 5px; }
+        .form-control { width: 100%; padding: 10px 14px; font-size: 13px; border: 1px solid var(--border); background: var(--bg-subtle); color: var(--text-main); border-radius: 10px; outline: none; transition: all 0.2s; }
+        .form-control:focus { background: var(--bg-card); border-color: var(--primary); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .icon { width: 16px; height: 16px; fill: currentColor; display: inline-block; vertical-align: middle; }
+        .empty-state { text-align: center; padding: 30px; color: var(--text-muted); font-size: 13px; font-weight: 500; }
+
+        @media print {
+            header, nav, .no-print { display: none !important; }
+            body { background: white; color: black; }
+            .card { border: none; box-shadow: none; padding: 0; }
+        }
+    </style>
+</head>
+<body class="light-mode">
+
+    <!-- Header -->
+    <header class="no-print">
+        <div class="header-container">
+            <a href="#" onclick="deselectPatient(); window.scrollTo({top: 0, behavior: 'smooth'}); return false;" class="logo" title="Select Patient Chart">
+                <div class="logo-icon">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                </div>
+                <div>
+                    <span class="logo-text">MediHist</span>
+                    <span class="logo-sub">Medical Record & History Portal</span>
+                </div>
+            </a>
+
+            <!-- Search -->
+            <div class="search-box">
+                <svg class="search-icon icon" viewBox="0 0 24 24" onclick="document.getElementById('globalSearch').focus()" style="cursor: pointer;"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" id="globalSearch" placeholder="Search patient ID, name, med, disease, doctor..." class="search-input" autocomplete="off">
+                <div id="searchResultsDropdown" class="search-dropdown" style="display: none;"></div>
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <!-- Dark / Light Theme Toggle -->
+                <button onclick="toggleTheme()" class="theme-toggle-btn" id="themeBtn">
+                    <span id="themeIcon">🌙</span>
+                    <span id="themeText">Dark Mode</span>
+                </button>
+
+                <!-- Permanent Change Patient Option (Placed right near Dark Mode button) -->
+                <button onclick="deselectPatient()" class="btn btn-outline" id="headerChangePatientBtn" style="border-color: var(--primary); color: var(--primary);">
+                    🔄 Change Patient
+                </button>
+
+                <button onclick="showTab('intake')" class="btn btn-emerald">
+                    + New Patient Intake
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sub Navigation Tabs Ribbon — ONLY APPEARS WHEN A PATIENT IS SELECTED! -->
+    <nav class="no-print" id="subNavRibbon" style="display: none;">
+        <div class="nav-container">
+            <div class="nav-tab" id="tab-general" onclick="showTab('general')">General Vitals</div>
+            <div class="nav-tab" id="tab-medications" onclick="showTab('medications')">Medications</div>
+            <div class="nav-tab" id="tab-doctors" onclick="showTab('doctors')">Doctor Visits</div>
+            <div class="nav-tab" id="tab-family" onclick="showTab('family')">Family History</div>
+            <div class="nav-tab" id="tab-reports" onclick="showTab('reports')">Reports & Files</div>
+            <div class="nav-tab" id="tab-summary" onclick="showTab('summary')">Print Summary</div>
+        </div>
+    </nav>
+
+    <!-- Main Content (FIRST PAGE / DASHBOARD) -->
+    <main>
+
+        <!-- View 1: Main Dashboard Page -->
+        <div id="view-dashboard" class="tab-view">
+
+            <!-- SECTION A: Select Patient Chart Grid (FIRST PAGE TOP SECTION) -->
+            <div id="selectChartSection" class="card" style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <div>
+                        <h2 style="font-size: 16px; font-weight: 800;">Select Patient Chart</h2>
+                        <p style="font-size: 12px; color: var(--text-muted);">Click a patient below to view their complete dashboard overview & input fields directly on this page</p>
+                    </div>
+                </div>
+
+                <!-- Patient Cards Selector Row -->
+                <div id="dashboardPatientSelector" class="grid-2" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px;"></div>
+            </div>
+
+            <!-- SECTION B: Separate Standalone Full Patient Intake Option -->
+            <div id="fullIntakeBannerSection" class="intake-hero-card">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 48px; height: 48px; border-radius: 14px; background: white; color: var(--emerald); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; box-shadow: var(--shadow-sm);">
+                        📋
+                    </div>
+                    <div>
+                        <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main);">Full Patient Intake Form</h3>
+                        <p style="font-size: 12px; color: var(--text-muted);">Complete multi-step medical intake form for new or returning patients</p>
+                    </div>
+                </div>
+
+                <button onclick="showTab('intake')" class="btn btn-emerald" style="padding: 11px 22px; font-size: 14px;">
+                    Start Full Intake Form →
+                </button>
+            </div>
+
+            <!-- SECTION C: Selected Patient Dashboard Overview & Fields (ON THE FIRST PAGE) -->
+            <div id="selectedChartOverview" style="display: none;">
+                
+                <!-- Currently Selected Patient Banner Bar -->
+                <div class="active-patient-bar">
+                    <div style="font-size: 13px; font-weight: 800; color: var(--pastel-sky-text); flex: 1;">
+                        ✓ Active Selected Patient Chart: <strong id="activeBarName" style="color: var(--text-main);">Arthur Pendelton</strong>
+                    </div>
+                    <button onclick="deselectPatient()" class="btn btn-outline btn-sm">Deselect / Change Patient</button>
+                </div>
+
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 16px;">
+                        <div style="display: flex; gap: 16px; align-items: center;">
+                            <div id="dashAvatar" style="width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, #38bdf8, #2dd4bf); color: white; font-size: 22px; font-weight: 800; display: flex; align-items: center; justify-content: center;">AP</div>
+                            <div>
+                                <div style="font-size: 22px; font-weight: 800; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                    <span id="dashName">Arthur Pendelton</span>
+                                    <span class="badge badge-sky" id="dashId">AP1268</span>
+                                    <span class="badge badge-rose" id="dashBlood">Blood: A+</span>
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                                    <span id="dashMeta">Male, 58 yrs old (DOB: 1968-04-12)</span> • 
+                                    <span id="dashPhone">📞 +1 (555) 234-5678</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="showTab('summary')" class="btn btn-outline">Print Clinical Summary</button>
+                    </div>
+
+                    <!-- Alerts Row -->
+                    <div class="grid-2" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="alert-box alert-peach">
+                            <strong>⚠️ Allergies:</strong> <span id="dashAllergies">Penicillin, Sulfa drugs</span>
+                        </div>
+                        <div class="alert-box alert-rose">
+                            <strong>🏥 Diagnoses:</strong> <span id="dashChronic">Type 2 Diabetes, Hypertension</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Counters -->
+                <div class="grid-4" style="margin-bottom: 20px;">
+                    <div class="card" style="margin: 0; cursor: pointer;" onclick="showTab('medications')">
+                        <div style="font-size: 11px; text-transform: uppercase; font-weight: 800; color: var(--text-muted);">Medications</div>
+                        <div style="font-size: 26px; font-weight: 800; color: #0284c7;" id="cntMeds">4</div>
+                        <div style="font-size: 11px; color: #0284c7;">View list →</div>
+                    </div>
+                    <div class="card" style="margin: 0; cursor: pointer;" onclick="showTab('doctors')">
+                        <div style="font-size: 11px; text-transform: uppercase; font-weight: 800; color: var(--text-muted);">Doctor Visits</div>
+                        <div style="font-size: 26px; font-weight: 800; color: #0d9488;" id="cntDocs">3</div>
+                        <div style="font-size: 11px; color: #0d9488;">View visits →</div>
+                    </div>
+                    <div class="card" style="margin: 0; cursor: pointer;" onclick="showTab('family')">
+                        <div style="font-size: 11px; text-transform: uppercase; font-weight: 800; color: var(--text-muted);">Family History</div>
+                        <div style="font-size: 26px; font-weight: 800; color: #9333ea;" id="cntFam">4</div>
+                        <div style="font-size: 11px; color: #9333ea;">View risks →</div>
+                    </div>
+                    <div class="card" style="margin: 0; cursor: pointer;" onclick="showTab('reports')">
+                        <div style="font-size: 11px; text-transform: uppercase; font-weight: 800; color: var(--text-muted);">Reports & Files</div>
+                        <div style="font-size: 26px; font-weight: 800; color: #d97706;" id="cntReps">3</div>
+                        <div style="font-size: 11px; color: #d97706;">View reports →</div>
+                    </div>
+                </div>
+
+                <!-- Detailed Fields Grid Right on the First Page -->
+                <div class="grid-2">
+                    <div>
+                        <!-- Active Medications Field -->
+                        <div class="card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                                <h3 style="font-size: 15px; font-weight: 800;">Medications Field</h3>
+                                <button onclick="showModal('addMedModal')" class="btn btn-primary" style="font-size: 11px; padding: 4px 10px;">+ Add Med Field</button>
+                            </div>
+                            <div id="dashMedsList"></div>
+                        </div>
+
+                        <!-- Doctor Consultations Field -->
+                        <div class="card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                                <h3 style="font-size: 15px; font-weight: 800;">Doctor Visits Field</h3>
+                                <button onclick="showModal('addDocModal')" class="btn btn-teal" style="font-size: 11px; padding: 4px 10px;">+ Log Visit Field</button>
+                            </div>
+                            <div id="dashDocsList"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <!-- Family Medical History Field -->
+                        <div class="card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                                <h3 style="font-size: 15px; font-weight: 800;">Family History Risks Field</h3>
+                                <button onclick="showModal('addFamModal')" class="btn btn-purple" style="font-size: 11px; padding: 4px 10px;">+ Add Family Field</button>
+                            </div>
+                            <div id="dashFamList"></div>
+                        </div>
+
+                        <!-- Old Reports Summary Field -->
+                        <div class="card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                                <h3 style="font-size: 15px; font-weight: 800;">Old Medical Reports Field</h3>
+                                <button onclick="showModal('addRepModal')" class="btn btn-outline" style="font-size: 11px; padding: 4px 10px;">+ Upload Report Field</button>
+                            </div>
+                            <div id="dashRepsList"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- View 8: General Vitals & Demographics -->
+        <div id="view-general" class="tab-view" style="display:none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <h1 style="font-size: 22px; font-weight: 800;">General Patient Vitals & Demographics</h1>
+                    <p style="font-size: 13px; color: var(--text-muted);">Manage baseline height, weight, BMI, blood group, age & allergies for <strong id="genPatientName">Arthur Pendelton</strong></p>
+                </div>
+            </div>
+
+            <div class="card" style="max-width: 800px; margin: 0 auto;">
+                <form id="generalVitalsForm" onsubmit="handleGeneralSubmit(event)">
+                    <h3 style="font-size: 15px; font-weight: 800; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">1. Physical Vitals & Body Measurements</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Height (cm) *</label>
+                            <input type="number" step="0.1" id="g_height" required class="form-control" placeholder="e.g. 175" oninput="calculateGeneralBMIDisplay()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Weight (kg) *</label>
+                            <input type="number" step="0.1" id="g_weight" required class="form-control" placeholder="e.g. 70" oninput="calculateGeneralBMIDisplay()">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Blood Group *</label>
+                            <select id="g_blood" class="form-control">
+                                <option value="A+">A+</option><option value="A-">A-</option>
+                                <option value="B+">B+</option><option value="B-">B-</option>
+                                <option value="O+">O+</option><option value="O-">O-</option>
+                                <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Calculated BMI Indicator</label>
+                            <input type="text" id="g_bmi_display" class="form-control" readonly style="background: var(--bg-card); font-weight: 800;" value="BMI: --">
+                        </div>
+                    </div>
+
+                    <h3 style="font-size: 15px; font-weight: 800; margin-top: 20px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">2. Patient Demographics & Contact Info</h3>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">First Name *</label>
+                            <input type="text" id="g_fn" required class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Last Name *</label>
+                            <input type="text" id="g_ln" required class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Gender *</label>
+                            <select id="g_gender" class="form-control">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date of Birth (DOB) *</label>
+                            <input type="date" id="g_dob" required class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" id="g_phone" class="form-control" placeholder="+1 (555) 000-0000">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" id="g_email" class="form-control" placeholder="patient@example.com">
+                        </div>
+                    </div>
+
+                    <h3 style="font-size: 15px; font-weight: 800; margin-top: 20px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">3. Clinical Alerts & Diagnoses</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">Known Allergies & Drug Sensitivities</label>
+                        <input type="text" id="g_allergies" class="form-control" placeholder="Penicillin, Sulfa drugs...">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Chronic Conditions & Diagnoses</label>
+                        <input type="text" id="g_chronic" class="form-control" placeholder="Type 2 Diabetes, Hypertension...">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Insurance Provider</label>
+                            <input type="text" id="g_insurance" class="form-control" placeholder="e.g. BlueCross">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Policy Number</label>
+                            <input type="text" id="g_policy" class="form-control" placeholder="e.g. BCBS-998811">
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 24px; display: flex; justify-content: flex-end;">
+                        <button type="submit" class="btn btn-primary" style="padding: 10px 24px; font-size: 14px;">
+                            💾 Save & Update General Vitals
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- View 2: Medications -->
+        <div id="view-medications" class="tab-view" style="display:none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <h1 style="font-size: 22px; font-weight: 800;">Medication History & Tracker</h1>
+                    <p style="font-size: 13px; color: var(--text-muted);">Current and past prescriptions for <strong id="medsPatientName">Arthur Pendelton</strong></p>
+                </div>
+                <button onclick="showModal('addMedModal')" class="btn btn-primary">+ Add New Medication</button>
+            </div>
+
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Medication Name</th>
+                            <th>Dosage & Frequency</th>
+                            <th>Route</th>
+                            <th>Prescribing Doctor</th>
+                            <th>Indication / Reason</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="medsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- View 3: Doctors -->
+        <div id="view-doctors" class="tab-view" style="display:none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <h1 style="font-size: 22px; font-weight: 800;">Doctor Consultations Log</h1>
+                    <p style="font-size: 13px; color: var(--text-muted);">Historical specialist visits for <strong id="docsPatientName">Arthur Pendelton</strong></p>
+                </div>
+                <button onclick="showModal('addDocModal')" class="btn btn-teal">+ Log Doctor Visit</button>
+            </div>
+
+            <div id="doctorsListContainer"></div>
+        </div>
+
+        <!-- View 4: Family History -->
+        <div id="view-family" class="tab-view" style="display:none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <h1 style="font-size: 22px; font-weight: 800;">Family Medical History</h1>
+                    <p style="font-size: 13px; color: var(--text-muted);">Hereditary risks for <strong id="famPatientName">Arthur Pendelton</strong></p>
+                </div>
+                <button onclick="showModal('addFamModal')" class="btn btn-purple">+ Add Family History</button>
+            </div>
+
+            <div id="familyGridContainer" class="grid-2"></div>
+        </div>
+
+        <!-- View 5: Reports -->
+        <div id="view-reports" class="tab-view" style="display:none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <h1 style="font-size: 22px; font-weight: 800;">Old Reports & Medical Files</h1>
+                    <p style="font-size: 13px; color: var(--text-muted);">Lab tests and scans for <strong id="repsPatientName">Arthur Pendelton</strong></p>
+                </div>
+                <button onclick="showModal('addRepModal')" class="btn btn-primary">+ Upload Report</button>
+            </div>
+
+            <div id="reportsGridContainer" class="grid-2"></div>
+        </div>
+
+        <!-- View 6: Intake Wizard -->
+        <div id="view-intake" class="tab-view" style="display:none;">
+            <div class="card" style="max-width: 720px; margin: 0 auto;">
+                <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 6px;">Full Patient Medical History Intake Form</h2>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Complete this form to record comprehensive patient history.</p>
+
+                <form id="intakeWizardForm" onsubmit="handleIntakeSubmit(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">First Name *</label>
+                            <input type="text" id="in_fn" required placeholder="e.g. John" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Last Name *</label>
+                            <input type="text" id="in_ln" required placeholder="e.g. Doe" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Gender *</label>
+                            <select id="in_gender" class="form-control">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date of Birth *</label>
+                            <input type="date" id="in_dob" required class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Blood Type</label>
+                            <select id="in_blood" class="form-control">
+                                <option value="A+">A+</option><option value="A-">A-</option>
+                                <option value="B+">B+</option><option value="B-">B-</option>
+                                <option value="O+">O+</option><option value="O-">O-</option>
+                                <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" id="in_phone" placeholder="+1 (555) 000-0000" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Known Allergies</label>
+                        <input type="text" id="in_allergies" placeholder="Penicillin, Sulfa drugs, Peanuts..." class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Chronic Conditions</label>
+                        <input type="text" id="in_chronic" placeholder="Hypertension, Type 2 Diabetes, Asthma..." class="form-control">
+                    </div>
+
+                    <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                        <button type="submit" class="btn btn-emerald" style="padding: 10px 20px; font-size: 14px;">Save & Open Patient Chart</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- View 7: Printable Summary -->
+        <div id="view-summary" class="tab-view" style="display:none;">
+            <div class="no-print" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; background: #0f172a; color: white; padding: 16px; border-radius: 12px;">
+                <div>
+                    <h2 style="font-size: 16px; font-weight: 800;">Printable Patient Medical Chart</h2>
+                    <p style="font-size: 12px; color: #94a3b8;">Export complete chart to PDF or print directly</p>
+                </div>
+                <button onclick="window.print()" class="btn btn-emerald">🖨️ Print Chart / Save PDF</button>
+            </div>
+
+            <div class="card" id="summaryPrintArea" style="padding: 40px; background: white; color: black;">
+                <div style="border-bottom: 2px solid #0f172a; padding-bottom: 16px; margin-bottom: 20px; display: flex; justify-content: space-between;">
+                    <div>
+                        <a href="#" onclick="deselectPatient(); return false;" style="text-decoration: none; color: inherit;">
+                            <h1 style="font-size: 22px; font-weight: 900; text-transform: uppercase; cursor: pointer;">MediHist Medical Portal</h1>
+                        </a>
+                        <p style="font-size: 11px; font-weight: 700; color: #64748b;">PATIENT COMPREHENSIVE MEDICAL HISTORY SUMMARY</p>
+                    </div>
+                    <div style="text-align: right; font-size: 12px; color: #64748b;">
+                        <div>Date: <strong id="sumDate">2026-09-03</strong></div>
+                        <div>Chart ID: <strong id="sumChartId">AP1268</strong></div>
+                    </div>
+                </div>
+
+                <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
+                    <h3 style="font-size: 12px; text-transform: uppercase; font-weight: 800; color: #64748b; margin-bottom: 10px;">1. Patient Baseline Vitals & Info</h3>
+                    <div class="grid-4" id="sumVitalsGrid" style="font-size: 12px;">
+                        <div>Name: <strong id="sumName">Arthur Pendelton</strong></div>
+                        <div>Gender/Age: <strong id="sumAge">Male, 58 yrs</strong></div>
+                        <div>Blood Group: <strong id="sumBlood" style="color: #be123c;">A+</strong></div>
+                        <div>Phone: <strong id="sumPhone">+1 (555) 234-5678</strong></div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div style="background: #fffbeb; padding: 12px; border-radius: 8px; border: 1px solid #fde68a; font-size: 12px;">
+                        <strong>⚠️ Allergies:</strong> <span id="sumAllergies">Penicillin, Sulfa drugs</span>
+                    </div>
+                    <div style="background: #fff1f2; padding: 12px; border-radius: 8px; border: 1px solid #fecdd3; font-size: 12px;">
+                        <strong>🏥 Diagnoses:</strong> <span id="sumChronic">Diabetes, Hypertension</span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <h3 style="font-size: 13px; text-transform: uppercase; font-weight: 800; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 10px;">2. Active Medications</h3>
+                    <div id="sumMeds"></div>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <h3 style="font-size: 13px; text-transform: uppercase; font-weight: 800; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 10px;">3. Doctor Consultations</h3>
+                    <div id="sumDocs"></div>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <h3 style="font-size: 13px; text-transform: uppercase; font-weight: 800; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 10px;">4. Family Medical History</h3>
+                    <div id="sumFam"></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modals -->
+
+    <!-- Add Medication Modal -->
+    <div id="addMedModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">+ Add Medication</span>
+                <button onclick="hideModal('addMedModal')" class="close-btn">&times;</button>
+            </div>
+            <form onsubmit="handleAddMed(event)">
+                <div class="form-group">
+                    <label class="form-label">Medication Name *</label>
+                    <input type="text" id="m_name" required placeholder="e.g. Metformin" class="form-control">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Dosage *</label>
+                        <input type="text" id="m_dosage" required placeholder="e.g. 500mg" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Frequency *</label>
+                        <input type="text" id="m_freq" required placeholder="e.g. Twice daily" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Prescribing Doctor</label>
+                        <input type="text" id="m_doc" placeholder="Dr. Sarah Jenkins" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Indication / Reason</label>
+                        <input type="text" id="m_ind" placeholder="e.g. Type 2 Diabetes" class="form-control">
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button type="button" onclick="hideModal('addMedModal')" class="btn btn-outline">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Medication</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Doctor Modal -->
+    <div id="addDocModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">+ Log Doctor Visit</span>
+                <button onclick="hideModal('addDocModal')" class="close-btn">&times;</button>
+            </div>
+            <form onsubmit="handleAddDoc(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Doctor Name *</label>
+                        <input type="text" id="d_name" required placeholder="Dr. Sarah Jenkins" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Specialty *</label>
+                        <input type="text" id="d_spec" required placeholder="Cardiology" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Hospital / Clinic</label>
+                        <input type="text" id="d_hosp" placeholder="Metro Heart Center" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Visit Date *</label>
+                        <input type="date" id="d_date" required class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Chief Complaint / Reason</label>
+                    <input type="text" id="d_reason" placeholder="Routine BP check..." class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Diagnosis & Clinical Notes</label>
+                    <textarea id="d_notes" rows="2" placeholder="Controlled hypertension, continue current meds..." class="form-control"></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button type="button" onclick="hideModal('addDocModal')" class="btn btn-outline">Cancel</button>
+                    <button type="submit" class="btn btn-teal">Save Visit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Family Modal -->
+    <div id="addFamModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">+ Add Family History</span>
+                <button onclick="hideModal('addFamModal')" class="close-btn">&times;</button>
+            </div>
+            <form onsubmit="handleAddFam(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Relative Relation *</label>
+                        <select id="f_rel" class="form-control">
+                            <option value="Father">Father</option>
+                            <option value="Mother">Mother</option>
+                            <option value="Brother">Brother</option>
+                            <option value="Sister">Sister</option>
+                            <option value="Grandfather">Grandfather</option>
+                            <option value="Grandmother">Grandmother</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Condition Name *</label>
+                        <input type="text" id="f_cond" required placeholder="e.g. Heart Attack" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Onset Age</label>
+                        <input type="text" id="f_age" placeholder="55" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select id="f_status" class="form-control">
+                            <option value="Living">Living</option>
+                            <option value="Deceased">Deceased</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button type="button" onclick="hideModal('addFamModal')" class="btn btn-outline">Cancel</button>
+                    <button type="submit" class="btn btn-purple">Save Family Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Report Modal -->
+    <div id="addRepModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">+ Upload Medical Report</span>
+                <button onclick="hideModal('addRepModal')" class="close-btn">&times;</button>
+            </div>
+            <form onsubmit="handleAddRep(event)">
+                <div class="form-group">
+                    <label class="form-label">Report Title *</label>
+                    <input type="text" id="r_title" required placeholder="Complete Blood Count" class="form-control">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Category *</label>
+                        <select id="r_cat" class="form-control">
+                            <option value="Lab Test">Lab Test</option>
+                            <option value="Imaging">Diagnostic Imaging</option>
+                            <option value="Pathology">Pathology</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Date *</label>
+                        <input type="date" id="r_date" required class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Key Laboratory Findings</label>
+                    <textarea id="r_find" rows="2" placeholder="Glucose 118 mg/dL, HbA1c 6.8%..." class="form-control"></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button type="button" onclick="hideModal('addRepModal')" class="btn btn-outline">Cancel</button>
+                    <button type="submit" class="btn btn-emerald">Save Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // Supabase Project Credentials
+        const SUPABASE_URL = "https://ynqyshgctoeektnlseet.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_kwXYWN9hoRts6HAoSS96rg_dvkopI1W";
+
+        const supabaseHeaders = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+        };
+
+        // Direct Supabase REST API helper
+        async function supabaseFetch(endpoint, options = {}) {
+            const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+            const opts = {
+                ...options,
+                headers: {
+                    ...supabaseHeaders,
+                    ...(options.headers || {})
+                }
+            };
+            try {
+                const response = await fetch(url, opts);
+                if (!response.ok) {
+                    const errText = await response.text();
+                    console.warn(`Supabase ${endpoint} (${response.status}):`, errText);
+                    return null;
+                }
+                const text = await response.text();
+                return text ? JSON.parse(text) : [];
+            } catch (err) {
+                console.warn(`Supabase connection error on ${endpoint}:`, err);
+                return null;
+            }
+        }
+
+        // Data Store
+        const state = {
+            activePatientId: null, // Unselected by default
+            isPatientSelected: false,
+            isDarkMode: false,
+            patients: [],
+            medications: [],
+            consultations: [],
+            family: [],
+            reports: []
+        };
+
+        async function loadInitialDataFromAPI() {
+            try {
+                let pRes = null, mRes = null, cRes = null, fRes = null, rRes = null;
+
+                // 1. Fetch directly from Supabase REST API
+                const [sbP, sbM, sbC, sbF, sbR] = await Promise.all([
+                    supabaseFetch('patients?select=*'),
+                    supabaseFetch('medications?select=*'),
+                    supabaseFetch('consultations?select=*'),
+                    supabaseFetch('family_histories?select=*'),
+                    supabaseFetch('reports?select=*')
+                ]);
+
+                if (Array.isArray(sbP) && sbP.length > 0) {
+                    pRes = sbP;
+                    mRes = sbM || [];
+                    cRes = sbC || [];
+                    fRes = sbF || [];
+                    rRes = sbR || [];
+                }
+
+                // 2. Fallback to local FastAPI server if Supabase is offline
+                if (!pRes) {
+                    try {
+                        const [p, m, c, f, r] = await Promise.all([
+                            fetch('/api/v1/patients').then(res => res.json()),
+                            fetch('/api/v1/medications').then(res => res.json()),
+                            fetch('/api/v1/consultations').then(res => res.json()),
+                            fetch('/api/v1/family-history').then(res => res.json()),
+                            fetch('/api/v1/reports').then(res => res.json())
+                        ]);
+                        pRes = p; mRes = m; cRes = c; fRes = f; rRes = r;
+                    } catch (fErr) {
+                        console.log("Local API fetch notice:", fErr);
+                    }
+                }
+
+                if (Array.isArray(pRes)) {
+                    state.patients = pRes.map(p => ({
+                        id: p.id,
+                        fn: p.first_name,
+                        mn: p.middle_name || '',
+                        ln: p.last_name,
+                        gender: p.gender,
+                        dob: p.dob,
+                        blood: p.blood_group || 'A+',
+                        phone: p.phone || '',
+                        email: p.email || '',
+                        height: p.height_cm || 170,
+                        weight: p.weight_kg || 70,
+                        allergies: p.allergies || '',
+                        chronic: p.chronic_conditions || '',
+                        insurance: p.insurance_provider || '',
+                        policy: p.insurance_policy_number || '',
+                        code: p.patient_code
+                    }));
+                }
+
+                if (Array.isArray(mRes)) {
+                    state.medications = mRes.map(m => ({
+                        id: m.id, patId: m.patient_id, name: m.name, dosage: m.dosage,
+                        freq: m.frequency, route: m.route || 'Oral', doc: m.prescribing_doctor || '',
+                        ind: m.indication || '', status: m.status || 'Active'
+                    }));
+                }
+
+                if (Array.isArray(cRes)) {
+                    state.consultations = cRes.map(c => ({
+                        id: c.id, patId: c.patient_id, doc: c.doctor_name, spec: c.specialization,
+                        hosp: c.hospital || '', date: c.visit_date, reason: c.reason || '', notes: c.notes || ''
+                    }));
+                }
+
+                if (Array.isArray(fRes)) {
+                    state.family = fRes.map(f => ({
+                        id: f.id, patId: f.patient_id, rel: f.relation, cond: f.condition,
+                        age: f.age_at_onset || '', status: f.status || 'Living'
+                    }));
+                }
+
+                if (Array.isArray(rRes)) {
+                    state.reports = rRes.map(r => ({
+                        id: r.id, patId: r.patient_id, title: r.title, cat: r.category || 'Lab Test',
+                        date: r.report_date, findings: r.findings || ''
+                    }));
+                }
+
+                renderDashboard();
+            } catch (err) {
+                console.log("Using fallback state data", err);
+                renderDashboard();
+            }
+        }
+
+        function toggleTheme() {
+            state.isDarkMode = !state.isDarkMode;
+            if (state.isDarkMode) {
+                document.body.classList.add('dark-mode');
+                document.body.classList.remove('light-mode');
+                document.getElementById('themeIcon').innerText = '☀️';
+                document.getElementById('themeText').innerText = 'Light Mode';
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.body.classList.add('light-mode');
+                document.getElementById('themeIcon').innerText = '🌙';
+                document.getElementById('themeText').innerText = 'Dark Mode';
+            }
+        }
+
+        function getActivePatient() {
+            if (!state.activePatientId) return null;
+            return state.patients.find(p => p.id === state.activePatientId) || null;
+        }
+
+        function getPatientCode(p) {
+            if (p.code) return p.code;
+            let initials = '';
+            if (p.fn) initials += p.fn[0].toUpperCase();
+            if (p.mn) initials += p.mn[0].toUpperCase();
+            if (p.ln) initials += p.ln[0].toUpperCase();
+            if (!initials) initials = 'PAT';
+            
+            let day = '01';
+            let yr = '00';
+            if (p.dob) {
+                const parts = p.dob.split('-');
+                if (parts.length === 3) {
+                    yr = parts[0].slice(-2);
+                    day = parts[2].padStart(2, '0');
+                }
+            }
+            return `${initials}${day}${yr}`;
+        }
+
+        function calculateAge(dobStr) {
+            if (!dobStr) return 'N/A';
+            const dob = new Date(dobStr);
+            const diff = Date.now() - dob.getTime();
+            const ageDate = new Date(diff);
+            return Math.abs(ageDate.getUTCFullYear() - 1970);
+        }
+
+        function renderPatientSelectorOnDashboard() {
+            const container = document.getElementById('dashboardPatientSelector');
+            container.innerHTML = state.patients.map(p => {
+                const isActive = (state.isPatientSelected && p.id === state.activePatientId);
+                return `
+                    <div class="patient-select-card ${isActive ? 'active-card' : ''}" onclick="selectPatientChart(${p.id})">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <span class="badge ${isActive ? 'badge-sky' : 'badge-mint'}">ID: ${getPatientCode(p)}</span>
+                                <div style="font-size: 16px; font-weight: 800; margin-top: 4px;">${p.fn} ${p.ln}</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">${p.gender}, ${calculateAge(p.dob)} yrs (DOB: ${p.dob})</div>
+                            </div>
+                            <span class="badge badge-rose">${p.blood}</span>
+                        </div>
+                        <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 11px; font-weight: 800; color: var(--primary);">
+                            ${isActive ? '✓ Selected (Dashboard & Fields Open Below) →' : 'Click to select chart & open dashboard overview below →'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectPatientChart(id) {
+            state.activePatientId = id;
+            state.isPatientSelected = true;
+            
+            // Show the ribbon
+            document.getElementById('subNavRibbon').style.display = 'block';
+
+            renderDashboard();
+        }
+
+        function deselectPatient() {
+            state.activePatientId = null;
+            state.isPatientSelected = false;
+
+            // Hide the ribbon
+            document.getElementById('subNavRibbon').style.display = 'none';
+
+            showTab('dashboard');
+        }
+
+        function renderDashboard() {
+            renderPatientSelectorOnDashboard();
+
+            const overview = document.getElementById('selectedChartOverview');
+            const ribbon = document.getElementById('subNavRibbon');
+            const selectSection = document.getElementById('selectChartSection');
+            const intakeSection = document.getElementById('fullIntakeBannerSection');
+
+            if (!state.isPatientSelected || !state.activePatientId) {
+                overview.style.display = 'none';
+                ribbon.style.display = 'none';
+                if (selectSection) selectSection.style.display = 'block';
+                if (intakeSection) intakeSection.style.display = 'flex';
+                return;
+            }
+
+            // Hide select patient chart & full intake banner when patient is selected!
+            if (selectSection) selectSection.style.display = 'none';
+            if (intakeSection) intakeSection.style.display = 'none';
+
+            // Reveal ribbon and overview right here on the first page!
+            ribbon.style.display = 'block';
+            overview.style.display = 'block';
+
+            const p = getActivePatient();
+            document.getElementById('activeBarName').innerText = `${p.fn} ${p.ln}`;
+            document.getElementById('dashAvatar').innerText = p.fn[0] + p.ln[0];
+            document.getElementById('dashName').innerText = `${p.fn} ${p.ln}`;
+            document.getElementById('dashId').innerText = getPatientCode(p);
+            document.getElementById('dashBlood').innerText = `Blood: ${p.blood}`;
+            document.getElementById('dashMeta').innerText = `${p.gender}, ${calculateAge(p.dob)} yrs old (DOB: ${p.dob})`;
+            document.getElementById('dashPhone').innerText = `📞 ${p.phone || 'N/A'}`;
+            document.getElementById('dashAllergies').innerText = p.allergies || 'None reported';
+            document.getElementById('dashChronic').innerText = p.chronic || 'None recorded';
+
+            // Counts
+            const meds = state.medications.filter(m => m.patId === p.id);
+            const docs = state.consultations.filter(d => d.patId === p.id);
+            const fams = state.family.filter(f => f.patId === p.id);
+            const reps = state.reports.filter(r => r.patId === p.id);
+
+            document.getElementById('cntMeds').innerText = meds.length;
+            document.getElementById('cntDocs').innerText = docs.length;
+            document.getElementById('cntFam').innerText = fams.length;
+            document.getElementById('cntReps').innerText = reps.length;
+
+            // Meds list
+            const dashMeds = document.getElementById('dashMedsList');
+            dashMeds.innerHTML = meds.map(m => `
+                <div style="padding: 10px; background: var(--bg-subtle); border-radius: 8px; border: 1px solid var(--border); margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 700;">${m.name} <span class="badge badge-sky">${m.dosage}</span></div>
+                        <div style="font-size: 11px; color: var(--text-muted);">${m.freq} • Prescribed by ${m.doc}</div>
+                    </div>
+                    <button onclick="deleteMed(${m.id})" class="btn btn-danger" style="font-size: 10px; padding: 2px 6px;">Delete</button>
+                </div>
+            `).join('') || '<div class="empty-state">No active medications</div>';
+
+            // Docs list
+            const dashDocs = document.getElementById('dashDocsList');
+            dashDocs.innerHTML = docs.map(d => `
+                <div style="padding: 10px; background: var(--bg-subtle); border-radius: 8px; border: 1px solid var(--border); margin-bottom: 8px; font-size: 13px;">
+                    <div style="font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
+                        <span>${d.doc} (${d.spec})</span>
+                        <div>
+                            <span style="font-size: 11px; color: var(--text-muted); margin-right: 8px;">${d.date}</span>
+                            <button onclick="deleteDoc(${d.id})" class="btn btn-danger" style="font-size: 10px; padding: 2px 6px;">Delete</button>
+                        </div>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">"${d.notes}"</div>
+                </div>
+            `).join('') || '<div class="empty-state">No consultation visits</div>';
+
+            // Family list
+            const dashFam = document.getElementById('dashFamList');
+            dashFam.innerHTML = fams.map(f => `
+                <div style="padding: 10px; background: var(--pastel-lavender-bg); color: var(--pastel-lavender-text); border-radius: 8px; margin-bottom: 8px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>${f.rel}:</strong> ${f.cond} (Onset: ${f.age} yrs)
+                    </div>
+                    <button onclick="deleteFam(${f.id})" class="btn btn-danger" style="font-size: 10px; padding: 2px 6px;">Delete</button>
+                </div>
+            `).join('') || '<div class="empty-state">No family history</div>';
+
+            // Reports list
+            const dashReps = document.getElementById('dashRepsList');
+            dashReps.innerHTML = reps.map(r => `
+                <div style="padding: 10px; background: var(--bg-subtle); border-radius: 8px; border: 1px solid var(--border); margin-bottom: 8px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 700;">${r.title} [${r.cat}]</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">${r.date}</div>
+                    </div>
+                    <button onclick="deleteRep(${r.id})" class="btn btn-danger" style="font-size: 10px; padding: 2px 6px;">Delete</button>
+                </div>
+            `).join('') || '<div class="empty-state">No reports uploaded</div>';
+        }
+
+        function renderMedicationsTab() {
+            const p = getActivePatient();
+            if (!p) return;
+            document.getElementById('medsPatientName').innerText = `${p.fn} ${p.ln}`;
+            const meds = state.medications.filter(m => m.patId === p.id);
+            const tbody = document.getElementById('medsTableBody');
+            tbody.innerHTML = meds.map(m => `
+                <tr>
+                    <td><strong>${m.name}</strong></td>
+                    <td>${m.dosage} (${m.freq})</td>
+                    <td>${m.route}</td>
+                    <td>${m.doc}</td>
+                    <td>${m.ind}</td>
+                    <td><span class="badge badge-mint">${m.status}</span></td>
+                    <td><button onclick="deleteMed(${m.id})" class="btn btn-danger" style="font-size: 11px; padding: 3px 8px;">Delete</button></td>
+                </tr>
+            `).join('') || '<tr><td colspan="7" class="empty-state">No medications recorded for this patient</td></tr>';
+        }
+
+        function renderDoctorsTab() {
+            const p = getActivePatient();
+            if (!p) return;
+            document.getElementById('docsPatientName').innerText = `${p.fn} ${p.ln}`;
+            const docs = state.consultations.filter(d => d.patId === p.id);
+            const container = document.getElementById('doctorsListContainer');
+            container.innerHTML = docs.map(d => `
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                        <div>
+                            <h3 style="font-size: 16px; font-weight: 800;">${d.doc}</h3>
+                            <span class="badge badge-sky">${d.spec}</span> • <span style="font-size: 12px; color: var(--text-muted);">${d.hosp}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 12px; font-weight: 700; color: var(--text-muted);">${d.date}</span>
+                            <button onclick="deleteDoc(${d.id})" class="btn btn-danger" style="font-size: 11px; padding: 4px 8px;">Delete Visit</button>
+                        </div>
+                    </div>
+                    <div style="font-size: 13px; margin-bottom: 8px;"><strong>Reason / Chief Complaint:</strong> ${d.reason || 'Routine Visit'}</div>
+                    <div style="padding: 10px; background: var(--bg-subtle); border-radius: 8px; font-size: 12px; border: 1px solid var(--border);">"${d.notes}"</div>
+                </div>
+            `).join('') || '<div class="card empty-state">No doctor consultations logged for this patient</div>';
+        }
+
+        function renderFamilyTab() {
+            const p = getActivePatient();
+            if (!p) return;
+            document.getElementById('famPatientName').innerText = `${p.fn} ${p.ln}`;
+            const fams = state.family.filter(f => f.patId === p.id);
+            const container = document.getElementById('familyGridContainer');
+            container.innerHTML = fams.map(f => `
+                <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <span class="badge badge-lavender">${f.rel}</span>
+                            <button onclick="deleteFam(${f.id})" class="btn btn-danger" style="font-size: 11px; padding: 3px 8px;">Delete</button>
+                        </div>
+                        <h3 style="font-size: 16px; font-weight: 800; margin-top: 4px;">${f.cond}</h3>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Onset Age: <strong>${f.age} yrs</strong> • Living Status: <strong>${f.status}</strong></div>
+                    </div>
+                </div>
+            `).join('') || '<div class="card empty-state">No family history records added for this patient</div>';
+        }
+
+        function renderReportsTab() {
+            const p = getActivePatient();
+            if (!p) return;
+            document.getElementById('repsPatientName').innerText = `${p.fn} ${p.ln}`;
+            const reps = state.reports.filter(r => r.patId === p.id);
+            const container = document.getElementById('reportsGridContainer');
+            container.innerHTML = reps.map(r => `
+                <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <span class="badge badge-peach">${r.cat}</span>
+                            <button onclick="deleteRep(${r.id})" class="btn btn-danger" style="font-size: 11px; padding: 3px 8px;">Delete Report</button>
+                        </div>
+                        <h3 style="font-size: 16px; font-weight: 800; margin-top: 4px;">${r.title}</h3>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Date: ${r.date}</div>
+                        <div style="margin-top: 10px; padding: 10px; background: var(--bg-subtle); border-radius: 8px; font-size: 12px; font-family: monospace;">${r.findings}</div>
+                    </div>
+                </div>
+            `).join('') || '<div class="card empty-state">No medical reports uploaded for this patient</div>';
+        }
+
+        function renderGeneralTab() {
+            const p = getActivePatient();
+            if (!p) return;
+            document.getElementById('genPatientName').innerText = `${p.fn} ${p.ln}`;
+            
+            document.getElementById('g_fn').value = p.fn || '';
+            document.getElementById('g_ln').value = p.ln || '';
+            document.getElementById('g_gender').value = p.gender || 'Male';
+            document.getElementById('g_dob').value = p.dob || '';
+            document.getElementById('g_height').value = p.height || 170;
+            document.getElementById('g_weight').value = p.weight || 70;
+            document.getElementById('g_blood').value = p.blood || 'A+';
+            document.getElementById('g_phone').value = p.phone || '';
+            document.getElementById('g_email').value = p.email || '';
+            document.getElementById('g_allergies').value = p.allergies || '';
+            document.getElementById('g_chronic').value = p.chronic || '';
+            document.getElementById('g_insurance').value = p.insurance || '';
+            document.getElementById('g_policy').value = p.policy || '';
+
+            calculateGeneralBMIDisplay();
+        }
+
+        function calculateGeneralBMIDisplay() {
+            const h = parseFloat(document.getElementById('g_height').value) || 0;
+            const w = parseFloat(document.getElementById('g_weight').value) || 0;
+            if (h > 0 && w > 0) {
+                const bmi = (w / ((h / 100) * (h / 100))).toFixed(1);
+                let cat = 'Normal';
+                if (bmi < 18.5) cat = 'Underweight';
+                else if (bmi >= 25 && bmi < 30) cat = 'Overweight';
+                else if (bmi >= 30) cat = 'Obese';
+                document.getElementById('g_bmi_display').value = `BMI: ${bmi} (${cat})`;
+            } else {
+                document.getElementById('g_bmi_display').value = 'BMI: --';
+            }
+        }
+
+        async function handleGeneralSubmit(e) {
+            e.preventDefault();
+            let p = getActivePatient();
+            if (!p && state.patients.length > 0) {
+                p = state.patients[0];
+                selectPatientChart(p.id);
+            }
+            if (!p) return;
+
+            const fn = document.getElementById('g_fn').value.trim();
+            const ln = document.getElementById('g_ln').value.trim();
+            const gender = document.getElementById('g_gender').value;
+            const dob = document.getElementById('g_dob').value;
+            const height = parseFloat(document.getElementById('g_height').value) || p.height;
+            const weight = parseFloat(document.getElementById('g_weight').value) || p.weight;
+            const blood = document.getElementById('g_blood').value;
+            const phone = document.getElementById('g_phone').value.trim();
+            const email = document.getElementById('g_email').value.trim();
+            const allergies = document.getElementById('g_allergies').value.trim();
+            const chronic = document.getElementById('g_chronic').value.trim();
+            const insurance = document.getElementById('g_insurance').value.trim();
+            const policy = document.getElementById('g_policy').value.trim();
+
+            const payload = {
+                first_name: fn,
+                last_name: ln,
+                gender: gender,
+                dob: dob,
+                blood_group: blood,
+                phone: phone,
+                email: email,
+                height_cm: height,
+                weight_kg: weight,
+                allergies: allergies,
+                chronic_conditions: chronic,
+                insurance_provider: insurance,
+                insurance_policy_number: policy
+            };
+
+            // 1. Update in Supabase via REST API
+            const sbUpdated = await supabaseFetch(`patients?id=eq.${p.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(payload)
+            });
+
+            // 2. Sync with local FastAPI backend
+            try {
+                const res = await fetch(`/api/v1/patients/${p.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    const updated = await res.json();
+                    p.code = updated.patient_code;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+
+            p.fn = fn; p.ln = ln; p.gender = gender; p.dob = dob;
+            p.height = height; p.weight = weight; p.blood = blood;
+            p.phone = phone; p.email = email; p.allergies = allergies;
+            p.chronic = chronic; p.insurance = insurance; p.policy = policy;
+
+            alert('General vitals & demographics updated successfully!');
+
+            renderDashboard();
+            renderSummaryTab();
+            renderGeneralTab();
+        }
+
+        function renderSummaryTab() {
+            const p = getActivePatient();
+            if (!p) return;
+            document.getElementById('sumName').innerText = `${p.fn} ${p.ln}`;
+            document.getElementById('sumChartId').innerText = getPatientCode(p);
+            document.getElementById('sumAge').innerText = `${p.gender}, ${calculateAge(p.dob)} yrs (DOB: ${p.dob || 'N/A'})`;
+            document.getElementById('sumBlood').innerText = p.blood || 'Unknown';
+            document.getElementById('sumPhone').innerText = p.phone || 'None';
+            document.getElementById('sumAllergies').innerText = p.allergies || 'None reported';
+            document.getElementById('sumChronic').innerText = p.chronic || 'None recorded';
+
+            const h = p.height || 0;
+            const w = p.weight || 0;
+            let bmiStr = 'N/A';
+            if (h > 0 && w > 0) {
+                const bmi = (w / ((h / 100) * (h / 100))).toFixed(1);
+                bmiStr = `${bmi}`;
+            }
+
+            const vitalsGrid = document.getElementById('sumVitalsGrid');
+            if (vitalsGrid) {
+                vitalsGrid.innerHTML = `
+                    <div>Height: <strong>${h} cm</strong></div>
+                    <div>Weight: <strong>${w} kg</strong></div>
+                    <div>BMI: <strong>${bmiStr}</strong></div>
+                    <div>Blood Group: <strong style="color: #be123c;">${p.blood}</strong></div>
+                    <div>Gender / Age: <strong>${p.gender}, ${calculateAge(p.dob)} yrs</strong></div>
+                    <div>Phone: <strong>${p.phone || 'N/A'}</strong></div>
+                    <div>Email: <strong>${p.email || 'N/A'}</strong></div>
+                    <div>Insurance: <strong>${p.insurance || 'None'} ${p.policy ? '('+p.policy+')' : ''}</strong></div>
+                `;
+            }
+
+            const meds = state.medications.filter(m => m.patId === p.id);
+            document.getElementById('sumMeds').innerHTML = meds.map(m => `
+                <div style="font-size: 12px; padding: 6px 0; border-bottom: 1px solid #e2e8f0;">
+                    <strong>${m.name}</strong> ${m.dosage} (${m.freq}) - Prescribed by ${m.doc}
+                </div>
+            `).join('') || '<div style="font-size: 12px; color: #94a3b8;">No active medications</div>';
+
+            const docs = state.consultations.filter(d => d.patId === p.id);
+            document.getElementById('sumDocs').innerHTML = docs.map(d => `
+                <div style="font-size: 12px; padding: 6px 0; border-bottom: 1px solid #e2e8f0;">
+                    <strong>${d.doc} (${d.spec})</strong> [${d.date}]: "${d.notes}"
+                </div>
+            `).join('') || '<div style="font-size: 12px; color: #94a3b8;">No doctor consultations</div>';
+
+            const fams = state.family.filter(f => f.patId === p.id);
+            document.getElementById('sumFam').innerHTML = fams.map(f => `
+                <div style="font-size: 12px; padding: 6px 0; border-bottom: 1px solid #e2e8f0;">
+                    <strong>${f.rel}:</strong> ${f.cond} (Onset: ${f.age} yrs)
+                </div>
+            `).join('') || '<div style="font-size: 12px; color: #94a3b8;">No family history</div>';
+        }
+
+        function showTab(tabName) {
+            if (tabName !== 'dashboard' && tabName !== 'intake' && !state.activePatientId) {
+                if (state.patients && state.patients.length > 0) {
+                    selectPatientChart(state.patients[0].id);
+                } else {
+                    tabName = 'dashboard';
+                }
+            }
+
+            document.querySelectorAll('.tab-view').forEach(v => v.style.display = 'none');
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+
+            const view = document.getElementById(`view-${tabName}`);
+            const tab = document.getElementById(`tab-${tabName}`);
+
+            if (view) view.style.display = 'block';
+            if (tab) tab.classList.add('active');
+
+            if (tabName === 'dashboard') renderDashboard();
+            if (tabName === 'general') renderGeneralTab();
+            if (tabName === 'medications') renderMedicationsTab();
+            if (tabName === 'doctors') renderDoctorsTab();
+            if (tabName === 'family') renderFamilyTab();
+            if (tabName === 'reports') renderReportsTab();
+            if (tabName === 'summary') renderSummaryTab();
+        }
+
+        function showModal(id) {
+            const modalEl = document.getElementById(id);
+            if (modalEl) {
+                const form = modalEl.querySelector('form');
+                if (form) form.reset();
+                modalEl.classList.add('active');
+            }
+        }
+        function hideModal(id) {
+            const modalEl = document.getElementById(id);
+            if (modalEl) {
+                const form = modalEl.querySelector('form');
+                if (form) form.reset();
+                modalEl.classList.remove('active');
+            }
+        }
+
+        // Handlers
+        async function handleAddMed(e) {
+            e.preventDefault();
+            let p = getActivePatient();
+            if (!p && state.patients.length > 0) {
+                p = state.patients[0];
+                selectPatientChart(p.id);
+            }
+            if (!p) return;
+
+            const name = document.getElementById('m_name').value.trim();
+            const dosage = document.getElementById('m_dosage').value.trim();
+            const freq = document.getElementById('m_freq').value.trim();
+            const doc = document.getElementById('m_doc').value.trim() || 'Primary Care';
+            const ind = document.getElementById('m_ind').value.trim() || 'Condition';
+
+            const payload = {
+                patient_id: p.id,
+                name: name,
+                dosage: dosage,
+                frequency: freq,
+                route: 'Oral',
+                prescribing_doctor: doc,
+                indication: ind,
+                status: 'Active'
+            };
+
+            let createdId = Date.now();
+
+            // Insert into Supabase
+            const sbRes = await supabaseFetch('medications', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            if (Array.isArray(sbRes) && sbRes.length > 0 && sbRes[0].id) {
+                createdId = sbRes[0].id;
+            }
+
+            // Sync with local backend
+            try {
+                const res = await fetch('/api/v1/medications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    const m = await res.json();
+                    if (!createdId || createdId === Date.now()) createdId = m.id;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+
+            state.medications.push({
+                id: createdId, patId: p.id, name: name, dosage: dosage, freq: freq, route: 'Oral', doc: doc, ind: ind, status: 'Active'
+            });
+
+            e.target.reset();
+            hideModal('addMedModal');
+            showTab('medications');
+            renderDashboard();
+        }
+
+        async function handleAddDoc(e) {
+            e.preventDefault();
+            let p = getActivePatient();
+            if (!p && state.patients.length > 0) {
+                p = state.patients[0];
+                selectPatientChart(p.id);
+            }
+            if (!p) return;
+
+            const doc = document.getElementById('d_name').value.trim();
+            const spec = document.getElementById('d_spec').value.trim();
+            const hosp = document.getElementById('d_hosp').value.trim();
+            const date = document.getElementById('d_date').value;
+            const reason = document.getElementById('d_reason').value.trim();
+            const notes = document.getElementById('d_notes').value.trim();
+
+            const payload = {
+                patient_id: p.id,
+                doctor_name: doc,
+                specialization: spec,
+                hospital: hosp,
+                visit_date: date,
+                reason: reason,
+                notes: notes
+            };
+
+            let createdId = Date.now();
+
+            // Insert into Supabase
+            const sbRes = await supabaseFetch('consultations', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            if (Array.isArray(sbRes) && sbRes.length > 0 && sbRes[0].id) {
+                createdId = sbRes[0].id;
+            }
+
+            // Sync with local backend
+            try {
+                const res = await fetch('/api/v1/consultations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    const c = await res.json();
+                    if (!createdId || createdId === Date.now()) createdId = c.id;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+
+            state.consultations.push({
+                id: createdId, patId: p.id, doc: doc, spec: spec, hosp: hosp, date: date, reason: reason, notes: notes
+            });
+
+            e.target.reset();
+            hideModal('addDocModal');
+            showTab('doctors');
+            renderDashboard();
+        }
+
+        async function handleAddFam(e) {
+            e.preventDefault();
+            let p = getActivePatient();
+            if (!p && state.patients.length > 0) {
+                p = state.patients[0];
+                selectPatientChart(p.id);
+            }
+            if (!p) return;
+
+            const rel = document.getElementById('f_rel').value;
+            const cond = document.getElementById('f_cond').value.trim();
+            const age = document.getElementById('f_age').value.trim();
+            const status = document.getElementById('f_status').value;
+
+            const payload = {
+                patient_id: p.id,
+                relation: rel,
+                condition: cond,
+                age_at_onset: age,
+                status: status
+            };
+
+            let createdId = Date.now();
+
+            // Insert into Supabase
+            const sbRes = await supabaseFetch('family_histories', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            if (Array.isArray(sbRes) && sbRes.length > 0 && sbRes[0].id) {
+                createdId = sbRes[0].id;
+            }
+
+            // Sync with local backend
+            try {
+                const res = await fetch('/api/v1/family-history', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    const f = await res.json();
+                    if (!createdId || createdId === Date.now()) createdId = f.id;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+
+            state.family.push({
+                id: createdId, patId: p.id, rel: rel, cond: cond, age: age, status: status
+            });
+
+            e.target.reset();
+            hideModal('addFamModal');
+            showTab('family');
+            renderDashboard();
+        }
+
+        async function handleAddRep(e) {
+            e.preventDefault();
+            let p = getActivePatient();
+            if (!p && state.patients.length > 0) {
+                p = state.patients[0];
+                selectPatientChart(p.id);
+            }
+            if (!p) return;
+
+            const title = document.getElementById('r_title').value.trim();
+            const cat = document.getElementById('r_cat').value;
+            const date = document.getElementById('r_date').value;
+            const findings = document.getElementById('r_find').value.trim();
+
+            const payload = {
+                patient_id: p.id,
+                title: title,
+                category: cat,
+                report_date: date,
+                findings: findings
+            };
+
+            let createdId = Date.now();
+
+            // Insert into Supabase
+            const sbRes = await supabaseFetch('reports', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            if (Array.isArray(sbRes) && sbRes.length > 0 && sbRes[0].id) {
+                createdId = sbRes[0].id;
+            }
+
+            // Sync with local backend
+            try {
+                const res = await fetch('/api/v1/reports', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    const r = await res.json();
+                    if (!createdId || createdId === Date.now()) createdId = r.id;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+
+            state.reports.push({
+                id: createdId, patId: p.id, title: title, cat: cat, date: date, findings: findings
+            });
+
+            e.target.reset();
+            hideModal('addRepModal');
+            showTab('reports');
+            renderDashboard();
+        }
+
+        async function handleIntakeSubmit(e) {
+            e.preventDefault();
+            const fn = document.getElementById('in_fn').value.trim();
+            const ln = document.getElementById('in_ln').value.trim();
+            const dob = document.getElementById('in_dob').value.trim();
+
+            if (!fn || !ln || !dob) {
+                alert('Please fill out First Name, Last Name, and Date of Birth.');
+                return;
+            }
+
+            const payload = {
+                first_name: fn,
+                last_name: ln,
+                gender: document.getElementById('in_gender').value,
+                dob: dob,
+                blood_group: document.getElementById('in_blood').value || 'A+',
+                phone: document.getElementById('in_phone').value || '',
+                allergies: document.getElementById('in_allergies').value || 'None reported',
+                chronic_conditions: document.getElementById('in_chronic').value || 'None recorded',
+                height_cm: 170, weight_kg: 70, insurance_provider: 'Primary Health'
+            };
+
+            let createdId = Date.now();
+
+            // Insert into Supabase
+            const sbRes = await supabaseFetch('patients', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            if (Array.isArray(sbRes) && sbRes.length > 0 && sbRes[0].id) {
+                createdId = sbRes[0].id;
+            }
+
+            // Sync with local backend
+            try {
+                const res = await fetch('/api/v1/patients', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    const p = await res.json();
+                    if (!createdId || createdId === Date.now()) createdId = p.id;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+
+            const newPat = {
+                id: createdId, fn: fn, ln: ln, gender: payload.gender, dob: dob, blood: payload.blood_group,
+                phone: payload.phone, allergies: payload.allergies, chronic: payload.chronic_conditions,
+                height: 170, weight: 70, insurance: 'Primary Health'
+            };
+            state.patients.push(newPat);
+
+            document.getElementById('intakeWizardForm').reset();
+
+            // Select this new patient chart and open dashboard overview view!
+            selectPatientChart(createdId);
+            showTab('dashboard');
+        }
+
+        // Delete Handlers
+        async function deleteMed(id) {
+            if (confirm('Are you sure you want to delete this medication record?')) {
+                await supabaseFetch(`medications?id=eq.${id}`, { method: 'DELETE' });
+                try {
+                    await fetch(`/api/v1/medications/${id}`, { method: 'DELETE' });
+                } catch (err) { console.error(err); }
+                state.medications = state.medications.filter(m => m.id !== id);
+                renderMedicationsTab();
+                renderDashboard();
+            }
+        }
+
+        async function deleteDoc(id) {
+            if (confirm('Are you sure you want to delete this doctor visit record?')) {
+                await supabaseFetch(`consultations?id=eq.${id}`, { method: 'DELETE' });
+                try {
+                    await fetch(`/api/v1/consultations/${id}`, { method: 'DELETE' });
+                } catch (err) { console.error(err); }
+                state.consultations = state.consultations.filter(d => d.id !== id);
+                renderDoctorsTab();
+                renderDashboard();
+            }
+        }
+
+        async function deleteFam(id) {
+            if (confirm('Are you sure you want to delete this family medical record?')) {
+                await supabaseFetch(`family_histories?id=eq.${id}`, { method: 'DELETE' });
+                try {
+                    await fetch(`/api/v1/family-history/${id}`, { method: 'DELETE' });
+                } catch (err) { console.error(err); }
+                state.family = state.family.filter(f => f.id !== id);
+                renderFamilyTab();
+                renderDashboard();
+            }
+        }
+
+        async function deleteRep(id) {
+            if (confirm('Are you sure you want to delete this report record?')) {
+                await supabaseFetch(`reports?id=eq.${id}`, { method: 'DELETE' });
+                try {
+                    await fetch(`/api/v1/reports/${id}`, { method: 'DELETE' });
+                } catch (err) { console.error(err); }
+                state.reports = state.reports.filter(r => r.id !== id);
+                renderReportsTab();
+                renderDashboard();
+            }
+        }
+
+        // Global Search Logic for index.html
+        function setupGlobalSearch() {
+            const searchInput = document.getElementById('globalSearch');
+            const searchDropdown = document.getElementById('searchResultsDropdown');
+            if (!searchInput || !searchDropdown) return;
+
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    const firstItem = searchDropdown.querySelector('.search-result-item');
+                    if (firstItem) {
+                        firstItem.click();
+                    }
+                }
+            });
+
+            searchInput.addEventListener('input', function() {
+                const query = this.value.trim().toLowerCase();
+                if (query.length < 1) {
+                    searchDropdown.style.display = 'none';
+                    searchDropdown.innerHTML = '';
+                    return;
+                }
+
+                const results = [];
+
+                // 1. Search Patients by ID or Name or Phone or Email
+                state.patients.forEach(p => {
+                    const fullName = `${p.fn} ${p.ln}`.toLowerCase();
+                    const code = getPatientCode(p).toLowerCase();
+
+                    if (fullName.includes(query) || p.fn.toLowerCase().includes(query) || p.ln.toLowerCase().includes(query) ||
+                        code.includes(query) ||
+                        (p.phone && p.phone.toLowerCase().includes(query)) ||
+                        (p.email && p.email.toLowerCase().includes(query))) {
+                        results.push({
+                            type: 'Patient Chart',
+                            patId: p.id,
+                            title: `${p.fn} ${p.ln} (${getPatientCode(p)})`,
+                            sub: `${p.gender}, ${calculateAge(p.dob)} yrs | Blood: ${p.blood}`,
+                            actionTab: 'dashboard'
+                        });
+                    }
+                });
+
+                // 2. Search Disease / Allergies / Chronic Conditions in Patients
+                state.patients.forEach(p => {
+                    const chronicMatch = p.chronic && p.chronic.toLowerCase().includes(query);
+                    const allergyMatch = p.allergies && p.allergies.toLowerCase().includes(query);
+
+                    if (chronicMatch || allergyMatch) {
+                        results.push({
+                            type: 'Disease / Allergy Match',
+                            patId: p.id,
+                            title: `Patient: ${p.fn} ${p.ln} (${getPatientCode(p)})`,
+                            sub: `Diagnoses: ${p.chronic || 'None'} | Allergies: ${p.allergies || 'None'}`,
+                            actionTab: 'general'
+                        });
+                    }
+                });
+
+                // 3. Search Medications
+                state.medications.forEach(m => {
+                    if (m.name.toLowerCase().includes(query) || (m.ind && m.ind.toLowerCase().includes(query)) || (m.doc && m.doc.toLowerCase().includes(query))) {
+                        const p = state.patients.find(pt => pt.id === m.patId);
+                        const patName = p ? `${p.fn} ${p.ln}` : 'Unknown Patient';
+                        results.push({
+                            type: 'Medication',
+                            patId: m.patId,
+                            title: `${m.name} (${m.dosage})`,
+                            sub: `Patient: ${patName} | Doctor: ${m.doc} | Indication: ${m.ind}`,
+                            actionTab: 'medications'
+                        });
+                    }
+                });
+
+                // 4. Search Doctor Consultations
+                state.consultations.forEach(d => {
+                    if (d.doc.toLowerCase().includes(query) || d.spec.toLowerCase().includes(query) || (d.reason && d.reason.toLowerCase().includes(query)) || (d.notes && d.notes.toLowerCase().includes(query))) {
+                        const p = state.patients.find(pt => pt.id === d.patId);
+                        const patName = p ? `${p.fn} ${p.ln}` : 'Unknown Patient';
+                        results.push({
+                            type: 'Doctor Visit',
+                            patId: d.patId,
+                            title: `${d.doc} (${d.spec})`,
+                            sub: `Patient: ${patName} | Date: ${d.date} | Reason: ${d.reason || d.notes}`,
+                            actionTab: 'doctors'
+                        });
+                    }
+                });
+
+                // 5. Search Family Medical History
+                state.family.forEach(f => {
+                    if (f.cond.toLowerCase().includes(query) || f.rel.toLowerCase().includes(query)) {
+                        const p = state.patients.find(pt => pt.id === f.patId);
+                        const patName = p ? `${p.fn} ${p.ln}` : 'Unknown Patient';
+                        results.push({
+                            type: 'Family Risk',
+                            patId: f.patId,
+                            title: `${f.rel} - ${f.cond}`,
+                            sub: `Patient: ${patName} | Onset Age: ${f.age} yrs`,
+                            actionTab: 'family'
+                        });
+                    }
+                });
+
+                // 6. Search Reports
+                state.reports.forEach(r => {
+                    if (r.title.toLowerCase().includes(query) || r.cat.toLowerCase().includes(query) || (r.findings && r.findings.toLowerCase().includes(query))) {
+                        const p = state.patients.find(pt => pt.id === r.patId);
+                        const patName = p ? `${p.fn} ${p.ln}` : 'Unknown Patient';
+                        results.push({
+                            type: 'Medical Report',
+                            patId: r.patId,
+                            title: `${r.title} [${r.cat}]`,
+                            sub: `Patient: ${patName} | Date: ${r.date}`,
+                            actionTab: 'reports'
+                        });
+                    }
+                });
+
+                if (results.length === 0) {
+                    searchDropdown.innerHTML = '<div style="padding: 12px; font-size: 12px; color: var(--text-muted); text-align: center;">No matching patients, medications, diseases, or doctor visits found</div>';
+                } else {
+                    searchDropdown.innerHTML = results.map(item => `
+                        <div class="search-result-item" onclick="onSearchResultClick(${item.patId}, '${item.actionTab}')">
+                            <span class="search-badge">${item.type}</span>
+                            <div class="search-result-title">${item.title}</div>
+                            <div class="search-result-sub">${item.sub}</div>
+                        </div>
+                    `).join('');
+                }
+                searchDropdown.style.display = 'block';
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
+                    searchDropdown.style.display = 'none';
+                }
+            });
+        }
+
+        function onSearchResultClick(patId, actionTab) {
+            selectPatientChart(patId);
+            showTab(actionTab);
+            document.getElementById('searchResultsDropdown').style.display = 'none';
+            document.getElementById('globalSearch').value = '';
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadInitialDataFromAPI();
+            setupGlobalSearch();
+        });
+    </script>
+</body>
+</html>

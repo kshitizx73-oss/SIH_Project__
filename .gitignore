@@ -1,0 +1,31 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment and Credentials
+.env
+*.env
+cookies.txt
+
+# Databases & Cache
+*.db
+*.sqlite
+*.sqlite3
+.pytest_cache/
+.cache/
+temp_script.js
+
+# Virtual Environments
+venv/
+env/
+ENV/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# macOS / OS metadata
+.DS_Store
+Thumbs.db
